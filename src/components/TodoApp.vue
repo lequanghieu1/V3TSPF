@@ -5,7 +5,7 @@ import { useMouse } from '../../helper/mouse'
 import { useTodoListStore } from "../store/useStore";
 import firebase from 'firebase'
 const store = useTodoListStore();
-const srcImg = ref('')
+let srcImg = ref('')
 const { x, y } = useMouse()
 const vColor = {
   mounted: (el: any, binding: any) => el.style.color = binding.value
@@ -45,9 +45,9 @@ function logout() {
   <div class="todo-app">
     <h1 v-color="changeColor">{{ store.showAlert }} {{ x }} {{ y }}</h1>
     <button class="btn" @click="logout">Logout</button>
-    <TodoForm :modelValue="pageTitle" @update:modelValue="newValue => pageTitle = newValue" @uploadImage="newValue => srcImg = newValue"><template
-        #header><img :src="srcImg" alt="hhi" /></template><template #footer>Please type something...</template></TodoForm>
-    <todo-list />
+    <TodoForm :modelValue="pageTitle" @update:modelValue="newValue => pageTitle = newValue" @uploadImages="(newValue: string) => srcImg = newValue "><template
+        #header><img v-if="srcImg" :src="srcImg" alt="" /></template><template #footer>Please type something...</template></TodoForm>
+    <todo-list :src="srcImg" />
   </div>
 </template>
 <style scoped>

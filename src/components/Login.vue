@@ -27,7 +27,7 @@ function submit() {
     .auth() // get the auth api
     .signInWithEmailAndPassword(user.value, pass.value) // need .value because ref()
     .then((data) => {
-      localStorage.setItem("user", data.user.za)
+      localStorage.setItem("user", JSON.stringify(data.user))
       router.push('/')
     })
     .catch((err) => {

@@ -4,6 +4,7 @@ import { ref, watch } from "vue";
 import { useTodoListStore } from "../store/useStore";
 import firebase from 'firebase'
 const todo = ref("");
+const url = ref("");
 const store = useTodoListStore();
 const fileIn = ref(null);
 const props = defineProps(['modelValue'])
@@ -17,8 +18,11 @@ function addItemAndClear(item: string) {
     return;
   }
   emit('update:modelValue', item)
+  writeUserData(1, item, false, JSON.parse(localStorage.getItem('user')).email, url.value)
+  emit('uploadImages', '')
   store.addTodo(item);
   todo.value = "";
+
 }
 function uploadImage(file: File) {
   let storageRef = firebase.storage().ref().child(`${file.name}`);
@@ -45,16 +49,15 @@ function uploadImage(file: File) {
       // For instance, get the download URL: https://firebasestorage.googleapis.com/...
       storageRef.put(file).snapshot.ref.getDownloadURL().then((downloadURL) => {
         emit('uploadImages', downloadURL)
+        url.value = downloadURL
         console.log('File available at', downloadURL);
       });
     }
   );
 }
-function writeUserData(userId: number, name: string, email: string, imageUrl: string) {
-  firebase.database().ref('users/' + userId).set({
-    username: name,
-    email: email,
-    profile_picture: imageUrl
+function writeUserData(id: number, item: string, complete: boolean, email: string, imageUrl: string) {
+  firebase.database().ref(`users/${id}`).set({
+    item, complete, email, imageUrl
   });
 }
 function onImageChange(e: any) {
@@ -66,10 +69,14 @@ function onImageChange(e: any) {
 <template>
   <div>
     <form>
-      <input v-model="todo" type="text" /><button @click.prevent="addItemAndClear(todo)" style="color:white">
-        {{ props.modelValue }}
-      </button>
-      <input ref="fileIn" type="file" @change="onImageChange" />
+      <div style="display: flex;justify-content: space-around;align-items: center;"><input v-model="todo"
+          type="text" /><label for="upload-photo">Browse...</label><input ref="fileIn" type="file"
+          @change="onImageChange" id="upload-photo" style="display:none" /><button
+          @click.prevent="addItemAndClear(todo)" style="color:white">
+          {{ props.modelValue }}
+        </button></div>
+
+
       <div @click="fileIn.click()">
         <slot name="header"></slot>
       </div>
