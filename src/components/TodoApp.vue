@@ -30,23 +30,29 @@ const changeColor = computed(() => {
   else if (+x.value > 900 && +x.value < 1000) return '#06c1f0'
   return '#0af895'
 })
+const email = computed(() => {
+  return JSON.parse(localStorage.getItem('user')).email
+})
 
 const router = useRouter()
 let pageTitle = ref('aaaa')
 function logout() {
   localStorage.removeItem("user");
   firebase
-        .auth()
-        .signOut()
+    .auth()
+    .signOut()
   router.push('/login')
 }
 </script>
 <template>
   <div class="todo-app">
-    <h1 v-color="changeColor">{{ store.showAlert }} {{ x }} {{ y }}</h1>
+    <!-- <h1 v-color="changeColor">{{ store.showAlert }} {{ x }} {{ y }}</h1> -->
+    <h1>To do List</h1>
+    <p>{{ email }}</p>
     <button class="btn" @click="logout">Logout</button>
-    <TodoForm :modelValue="pageTitle" @update:modelValue="newValue => pageTitle = newValue" @uploadImages="(newValue: string) => srcImg = newValue "><template
-        #header><img v-if="srcImg" :src="srcImg" alt="" /></template><template #footer>Please type something...</template></TodoForm>
+    <TodoForm :modelValue="pageTitle" @update:modelValue="newValue => pageTitle = newValue"
+      @uploadImages="(newValue: string) => srcImg = newValue"><template #header><img v-if="srcImg" :src="srcImg"
+          alt="" /></template><template #footer>Please type something...</template></TodoForm>
     <todo-list :src="srcImg" />
   </div>
 </template>

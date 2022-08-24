@@ -1,9 +1,11 @@
 import { defineStore } from "pinia";
 
 interface ToDoItem {
-  item: string;
   id: number;
+  item: string;
   completed: boolean;
+  email: string;
+  imageUrl: string;
 }
 
 export const useTodoListStore = defineStore("todoList", {
@@ -14,7 +16,21 @@ export const useTodoListStore = defineStore("todoList", {
   }),
   actions: {
     addTodo(item: string) {
-      this.todoList.push({ item, id: this.id++, completed: false });
+      this.todoList.push({
+        item,
+        id: this.id++,
+        completed: false,
+        email: "",
+        imageUrl: "",
+      });
+      this.todoList = this.todoList.filter(Boolean)
+    },
+    loadTodo(item: ToDoItem) {
+      this.todoList.push(item);
+      this.todoList = this.todoList.filter(Boolean)
+    },
+    resetArr() {
+      this.todoList = [];
     },
     deleteTodo(itemID: number) {
       this.todoList = this.todoList.filter((object) => {

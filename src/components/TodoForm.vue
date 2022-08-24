@@ -1,16 +1,32 @@
 <script lang="ts" setup>
 
-import { ref, watch } from "vue";
+import { ref, watch, inject } from "vue";
 import { useTodoListStore } from "../store/useStore";
 import firebase from 'firebase'
 const todo = ref("");
+const temp = ref(null);
 const url = ref("");
 const store = useTodoListStore();
 const fileIn = ref(null);
 const props = defineProps(['modelValue'])
 const emit = defineEmits(['update:modelValue', 'uploadImages'])
+const emitter: any = inject('emitter')
+interface User {
+  id: number, item: string, completed: boolean, email: string, imageUrl: string
+}
+interface response {
+  index: number,
+  todo: User
+}
 watch([todo, fileIn], ([todo, files]) => {
 
+});
+emitter.on('editItem', (value: response) => {   // *Listen* for event
+  todo.value = value.todo.item
+  temp.value = value.index
+});
+emitter.on('deleteItem', (value: number) => {   // *Listen* for event
+  firebase.database().ref(`users/${value}`).remove()
 });
 function addItemAndClear(item: string) {
   if (item.length === 0) {
@@ -18,9 +34,14 @@ function addItemAndClear(item: string) {
     return;
   }
   emit('update:modelValue', item)
-  writeUserData(1, item, false, JSON.parse(localStorage.getItem('user')).email, url.value)
+  if (temp.value) {
+    writeUserData(temp.value, item, false, JSON.parse(localStorage.getItem('user')).email, url.value)
+    temp.value = null
+  } else {
+    writeUserData(null, item, false, JSON.parse(localStorage.getItem('user')).email, url.value)
+  }
   emit('uploadImages', '')
-  store.addTodo(item);
+  // store.addTodo(item);
   todo.value = "";
 
 }
@@ -55,10 +76,18 @@ function uploadImage(file: File) {
     }
   );
 }
-function writeUserData(id: number, item: string, complete: boolean, email: string, imageUrl: string) {
-  firebase.database().ref(`users/${id}`).set({
-    item, complete, email, imageUrl
-  });
+function writeUserData(id: null | number, item: string, completed: boolean, email: string, imageUrl: string) {
+  if (!id) {
+    firebase.database().ref(`users/${store.todoList.length}`).set({
+      item, completed, email, imageUrl
+    });
+  }
+  else {
+    firebase.database().ref(`users/${id}`).set({
+      item, completed, email, imageUrl
+    });
+  }
+
 }
 function onImageChange(e: any) {
   let files: any = e.target.files || e.dataTransfer.files;
