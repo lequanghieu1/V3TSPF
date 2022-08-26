@@ -23,11 +23,15 @@ export const useTodoListStore = defineStore("todoList", {
         email: "",
         imageUrl: "",
       });
-      this.todoList = this.todoList.filter(Boolean)
+      this.todoList = this.todoList.filter(Boolean);
     },
-    loadTodo(item: ToDoItem) {
-      this.todoList.push(item);
-      this.todoList = this.todoList.filter(Boolean)
+    loadTodo(item: ToDoItem[]) {
+      // this.todoList.push(item);
+      if(item?.length){
+        this.todoList = item.filter(Boolean);
+      }
+
+      // this.todoList = this.todoList.filter(Boolean);
     },
     resetArr() {
       this.todoList = [];

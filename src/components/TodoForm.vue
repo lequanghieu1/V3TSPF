@@ -1,64 +1,77 @@
 <script lang="ts" setup>
-
 import { ref, watch, inject } from "vue";
 import { useTodoListStore } from "../store/useStore";
-import firebase from 'firebase'
+import firebase from "firebase";
 const todo = ref("");
 const temp = ref(null);
 const url = ref("");
 const store = useTodoListStore();
 const fileIn = ref(null);
-const props = defineProps(['modelValue'])
-const emit = defineEmits(['update:modelValue', 'uploadImages'])
-const emitter: any = inject('emitter')
+const props = defineProps(["modelValue"]);
+const emit = defineEmits(["update:modelValue", "uploadImages"]);
+const emitter: any = inject("emitter");
 interface User {
-  id: number, item: string, completed: boolean, email: string, imageUrl: string
+  id: number;
+  item: string;
+  completed: boolean;
+  email: string;
+  imageUrl: string;
 }
 interface response {
-  index: number,
-  todo: User
+  index: number;
+  todo: User;
 }
-watch([todo, fileIn], ([todo, files]) => {
-
+watch([todo, fileIn], ([todo, files]) => {});
+emitter.on("editItem", (value: response) => {
+  // *Listen* for event
+  todo.value = value.todo.item;
+  temp.value = value.index;
 });
-emitter.on('editItem', (value: response) => {   // *Listen* for event
-  todo.value = value.todo.item
-  temp.value = value.index
-});
-emitter.on('deleteItem', (value: number) => {   // *Listen* for event
-  firebase.database().ref(`users/${value}`).remove()
+emitter.on("deleteItem", (value: number) => {
+  firebase.database().ref(`users/${value}`).remove();
+  // console.log(store.todoList);
 });
 function addItemAndClear(item: string) {
   if (item.length === 0) {
     store.inputAlert();
     return;
   }
-  emit('update:modelValue', item)
+  emit("update:modelValue", item);
   if (temp.value) {
-    writeUserData(temp.value, item, false, JSON.parse(localStorage.getItem('user')).email, url.value)
-    temp.value = null
+    writeUserData(
+      item,
+      false,
+      JSON.parse(localStorage.getItem("user")).email,
+      url.value
+    );
+    temp.value = null;
   } else {
-    writeUserData(null, item, false, JSON.parse(localStorage.getItem('user')).email, url.value)
+    writeUserData(
+      item,
+      false,
+      JSON.parse(localStorage.getItem("user")).email,
+      url.value
+    );
   }
-  emit('uploadImages', '')
+  emit("uploadImages", "");
   // store.addTodo(item);
   todo.value = "";
-
 }
 function uploadImage(file: File) {
   let storageRef = firebase.storage().ref().child(`${file.name}`);
-  storageRef.put(file).on('state_changed',
+  storageRef.put(file).on(
+    "state_changed",
     (snapshot) => {
       // Observe state change events such as progress, pause, and resume
       // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
       var progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-      console.log('Upload is ' + progress + '% done');
+      console.log("Upload is " + progress + "% done");
       switch (snapshot.state) {
         case firebase.storage.TaskState.PAUSED: // or 'paused'
-          console.log('Upload is paused');
+          console.log("Upload is paused");
           break;
         case firebase.storage.TaskState.RUNNING: // or 'running'
-          console.log('Upload is running');
+          console.log("Upload is running");
           break;
       }
     },
@@ -68,43 +81,73 @@ function uploadImage(file: File) {
     () => {
       // Handle successful uploads on complete
       // For instance, get the download URL: https://firebasestorage.googleapis.com/...
-      storageRef.put(file).snapshot.ref.getDownloadURL().then((downloadURL) => {
-        emit('uploadImages', downloadURL)
-        url.value = downloadURL
-        console.log('File available at', downloadURL);
-      });
+      storageRef
+        .put(file)
+        .snapshot.ref.getDownloadURL()
+        .then((downloadURL) => {
+          emit("uploadImages", downloadURL);
+          url.value = downloadURL;
+          console.log("File available at", downloadURL);
+        });
     }
   );
 }
-function writeUserData(id: null | number, item: string, completed: boolean, email: string, imageUrl: string) {
-  if (!id) {
-    firebase.database().ref(`users/${store.todoList.length}`).set({
-      item, completed, email, imageUrl
+function writeUserData(
+  item: string,
+  completed: boolean,
+  email: string,
+  imageUrl: string
+) {
+  if (typeof temp.value !== "number") {
+    firebase
+      .database()
+      .ref(`users/${store.todoList[store.todoList?.length - 1]?.id + 1 || 0}`)
+      .set({
+        id: store.todoList[store.todoList?.length - 1]?.id + 1 || 0,
+        item,
+        completed,
+        email,
+        imageUrl,
+      });
+  } else {
+    firebase.database().ref(`users/${temp.value}`).set({
+      id: temp.value,
+      item,
+      completed,
+      email,
+      imageUrl,
     });
   }
-  else {
-    firebase.database().ref(`users/${id}`).set({
-      item, completed, email, imageUrl
-    });
-  }
-
+  temp.value = "";
 }
 function onImageChange(e: any) {
   let files: any = e.target.files || e.dataTransfer.files;
   if (!files.length) return;
-  uploadImage(files[0])
+  uploadImage(files[0]);
 }
 </script>
 <template>
   <div>
     <form>
-      <div style="display: flex;justify-content: space-around;align-items: center;"><input v-model="todo"
-          type="text" /><label for="upload-photo">Browse...</label><input ref="fileIn" type="file"
-          @change="onImageChange" id="upload-photo" style="display:none" /><button
-          @click.prevent="addItemAndClear(todo)" style="color:white">
+      <div
+        style="
+          display: flex;
+          justify-content: space-around;
+          align-items: center;
+        "
+      >
+        <input v-model="todo" type="text" /><label for="upload-photo"
+          >Browse...</label
+        ><input
+          ref="fileIn"
+          type="file"
+          @change="onImageChange"
+          id="upload-photo"
+          style="display: none"
+        /><button @click.prevent="addItemAndClear(todo)" style="color: white">
           {{ props.modelValue }}
-        </button></div>
-
+        </button>
+      </div>
 
       <div @click="fileIn.click()">
         <slot name="header"></slot>
@@ -118,8 +161,6 @@ function onImageChange(e: any) {
     </form>
   </div>
 </template>
-
-
 
 <style scoped>
 form {

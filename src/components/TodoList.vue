@@ -3,10 +3,10 @@
     <div class="item">
       <div :class="{ completed: todo?.completed }">{{ todo.item }}</div>
       <div>
-        <img width=50 height=27 v-if="todo.imageUrl" :src="todo.imageUrl" />
+        <img width="50" height="27" v-if="todo.imageUrl" :src="todo.imageUrl" />
         <!-- <span @click.stop="toggleCompleted(todo.id)">&#10004;</span> -->
         <span @click.stop="editItem(i, todo)">&#10004;</span>
-        <span @click="deleteItem(i)" class="x">&#10060;</span>
+        <span @click="deleteItem(todo.id)" class="x">&#10060;</span>
       </div>
     </div>
   </div>
@@ -16,46 +16,68 @@
 import { useTodoListStore } from "../store/useStore";
 import { storeToRefs } from "pinia";
 import { onBeforeMount, inject, computed } from "vue";
-import firebase from 'firebase'
-const emitter: any = inject('emitter');
+import firebase from "firebase";
+const emitter: any = inject("emitter");
 interface User {
-  id: number, item: string, completed: boolean, email: string, imageUrl: string
+  id: number;
+  item: string;
+  completed: boolean;
+  email: string;
+  imageUrl: string;
 }
-const props = defineProps(['src'])
+const props = defineProps(["src"]);
 const store = useTodoListStore();
 const { todoList } = storeToRefs(store);
 const { toggleCompleted, deleteTodo } = store;
 function tang() {
-  store.showAlert = true
+  store.showAlert = true;
 }
 onBeforeMount(() => {
-  countRecord()
-})
+  countRecord();
+});
 const listLoop = computed(() => {
-  return todoList.value.filter((e) => {
-       return e.email === JSON.parse(localStorage.getItem("user")).email;
-      });
-})
+  return todoList.value?.filter((e) => {
+    return e.email === JSON.parse(localStorage.getItem("user")).email;
+  });
+});
 function editItem(index: number, todo: User) {
   emitter.emit("editItem", { index, todo });
 }
 function deleteItem(index: number) {
+  // console.log(index)
   emitter.emit("deleteItem", index);
 }
 function countRecord() {
-  const listItem = firebase.database().ref(`users`);
-  listItem.on('value', (snapshot) => {
-    store.resetArr()
-    for (let i = 0; i <= +snapshot.numChildren(); i++) {
-      List(i)
+  const listItem = firebase.database().ref();
+  listItem.on("value", (snapshot) => {
+    // console.log(snapshot.val());
+    if (Array.isArray(snapshot.val()?.users)) {
+      List(snapshot.val()?.users);
+    } else if (snapshot.val() === null) {
+      store.resetArr();
+    } else {
+      {
+        const array = Object.keys(snapshot.val()?.users || {}).map(function (
+          key
+        ) {
+          return snapshot.val()?.users[key];
+        });
+        List(array);
+      }
     }
+
+    // store.resetArr();
+    // for (let i = 0; i <= +snapshot.numChildren(); i++) {
+    //   List(i);
+    // }
   });
 }
-function List(i: number) {
-  const listItem = firebase.database().ref(`users/${i}`);
-  listItem.on('value', (snapshot) => {
-    store.loadTodo(snapshot.val())
-  });
+function List(i: User[]) {
+  store.loadTodo(i);
+  // const listItem = firebase.database().ref(`users/${i}`);
+  // listItem.on("value", (snapshot) => {
+  //   store.loadTodo(snapshot.val());
+  // });
 }
 </script>
 
