@@ -3,14 +3,51 @@ import { useRouter } from "vue-router";
 import { ref, defineAsyncComponent, computed } from "vue";
 import { useMouse } from "../../helper/mouse";
 import { useTodoListStore } from "../store/useStore";
+import { useSocketIO } from "../socket";
 import firebase from "firebase";
+
 const store = useTodoListStore();
 let srcImg = ref("");
+const text = ref('')
+const isChat = ref(false)
+const messages = ref([])
+const { socket } = useSocketIO()
+socket.on('statusRoom', (message: string) => {
+  messages.value.push({
+    message,
+    type: 'status',
+  })
+
+})
+socket.on('connect', () => {
+  console.log(socket)
+})
+socket.on('receiveMessage', (mes: any) => {
+  receiveMessage(mes._value)
+})
+function sendMessage() {
+  if (text.value !== '') {
+    socket.emit('sendMessage', text) // emit lên server
+    messages.value.push({
+      message: text.value,
+      type: 'send',
+    })
+  }
+  text.value = ''
+}
+function receiveMessage(message: string) { //nhận tín nhắn từ ng khác trong phòng, push tin nhắn vào mảng ban đầu
+  messages.value.push({
+    message,
+    type: 'receive',
+  })
+}
 const { x, y } = useMouse();
 const vColor = {
   mounted: (el: any, binding: any) => (el.style.color = binding.value),
 };
-
+const chat = () => {
+  isChat.value = true
+}
 const TodoForm = defineAsyncComponent(() => import("./TodoForm.vue"));
 const TodoList = defineAsyncComponent(() => import("./TodoList.vue"));
 const changeColor = computed((): string => {
@@ -41,17 +78,20 @@ function logout() {
 <template>
   <div class="todo-app">
     <!-- <h1 v-color="changeColor">{{ store.showAlert }} {{ x }} {{ y }}</h1> -->
-    <h1>To do List</h1>
-    <p>{{ email }}</p>
-    <button class="btn" @click="logout">Logout</button>
-    <TodoForm
-      :modelValue="pageTitle"
-      @update:modelValue="(newValue) => (pageTitle = newValue)"
-      @uploadImages="(newValue) => (srcImg = newValue)"
-      ><template #header><img v-if="srcImg" :src="srcImg" alt="" /></template
-      ><template #footer>Please type something...</template></TodoForm
-    >
+    <h1>To do List</h1><button style="background-color:green" @click="chat">chat</button>
+    <p>{{  email  }}</p>
+    <button class=" btn" @click="logout">Logout</button>
+    <TodoForm :modelValue="pageTitle" @update:modelValue="(newValue) => (pageTitle = newValue)"
+      @uploadImages="(newValue) => (srcImg = newValue)"><template #header><img v-if="srcImg" :src="srcImg"
+          alt="" /></template><template #footer>Please type something...</template></TodoForm>
     <todo-list :src="srcImg" />
+    <div id="appaa" v-if="isChat">
+      <div v-for="(message, index) in messages" :key="index">
+        {{  message.type  }} : {{  message.message  }}
+      </div>
+      <input type="text" v-model="text">
+      <button @click="sendMessage()">Send</button>
+    </div>
   </div>
 </template>
 <style scoped>
