@@ -6,7 +6,7 @@ export function useMouse() {
     const y = ref(0)
   
     // a composable can update its managed state over time.
-    function update(event) {
+    function update(event: any) {
       x.value = event.pageX
       y.value = event.pageY
     }
